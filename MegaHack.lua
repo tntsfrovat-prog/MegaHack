@@ -1,4 +1,4 @@
--- SATWARE CHEATS v2.0
+-- SATWARE CHEATS v2.6 - Added Ghost Clone, Reality Glitch, Fly & Godmode
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -17,8 +17,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Modern Watermark with Blue Theme
 local WatermarkFrame = Instance.new("Frame")
-WatermarkFrame.Size = UDim2.new(0, 220, 0, 60)
-WatermarkFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
+WatermarkFrame.Size = UDim2.new(0, 240, 0, 60)
+WatermarkFrame.Position = UDim2.new(0.5, -120, 0.05, 0)
 WatermarkFrame.BackgroundColor3 = Color3.fromRGB(0, 80, 160)
 WatermarkFrame.BackgroundTransparency = 0.2
 WatermarkFrame.BorderSizePixel = 0
@@ -38,7 +38,7 @@ UIStroke1.Parent = WatermarkFrame
 local WatermarkLabel = Instance.new("TextLabel")
 WatermarkLabel.Size = UDim2.new(1, 0, 1, 0)
 WatermarkLabel.BackgroundTransparency = 1
-WatermarkLabel.Text = "SATWARE CHEATS v2.0"
+WatermarkLabel.Text = "SATWARE CHEATS v2.6"
 WatermarkLabel.TextColor3 = Color3.fromRGB(200, 230, 255)
 WatermarkLabel.Font = Enum.Font.GothamBold
 WatermarkLabel.TextSize = 16
@@ -46,7 +46,7 @@ WatermarkLabel.Parent = WatermarkFrame
 
 -- Main GUI Container
 local MainGUI = Instance.new("Frame")
-MainGUI.Size = UDim2.new(0, 350, 0, 800)
+MainGUI.Size = UDim2.new(0, 350, 0, 850)
 MainGUI.Position = UDim2.new(0.5, -175, 0.5, -300)
 MainGUI.BackgroundColor3 = Color3.fromRGB(0, 60, 120)
 MainGUI.BackgroundTransparency = 0.1
@@ -71,7 +71,7 @@ ScrollFrame.Position = UDim2.new(0, 10, 0, 10)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.ScrollBarThickness = 6
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 3.5, 0)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 4.0, 0)
 ScrollFrame.Parent = MainGUI
 
 -- Function to create beautiful buttons
@@ -231,11 +231,169 @@ local InvisibleEnabled = false
 local AFKEnabled = false
 local FullBrightEnabled = false
 local FreeCamEnabled = false
+local GhostCloneEnabled = false
+local FlyEnabled = false
+local GodmodeEnabled = false
 local OldNamecall
 local OriginalFOV = 70
 local OriginalLightingSettings = {}
 local AimFOV = 100
 local AimTarget = nil
+local GhostClone = nil
+local FlySpeed = 50
+
+-- Fly Function
+CreateButton("Fly Toggle", function()
+    FlyEnabled = not FlyEnabled
+    
+    if FlyEnabled then
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Parent = LocalPlayer.Character.HumanoidRootPart
+        
+        RunService:BindToRenderStep("FlyControl", Enum.RenderPriority.First.Value, function()
+            if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local root = LocalPlayer.Character.HumanoidRootPart
+                local velocity = Vector3.new(0, 0, 0)
+                
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    velocity = velocity + (Camera.CFrame.LookVector * FlySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    velocity = velocity + (Camera.CFrame.LookVector * -FlySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    velocity = velocity + (Camera.CFrame.RightVector * -FlySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    velocity = velocity + (Camera.CFrame.RightVector * FlySpeed)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    velocity = velocity + Vector3.new(0, FlySpeed, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    velocity = velocity + Vector3.new(0, -FlySpeed, 0)
+                end
+                
+                bodyVelocity.Velocity = velocity
+            end
+        end)
+    else
+        RunService:UnbindFromRenderStep("FlyControl")
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local bodyVelocity = LocalPlayer.Character.HumanoidRootPart:FindFirstChildOfClass("BodyVelocity")
+            if bodyVelocity then
+                bodyVelocity:Destroy()
+            end
+        end
+    end
+end)
+
+-- Godmode Function
+CreateButton("Godmode Toggle", function()
+    GodmodeEnabled = not GodmodeEnabled
+    
+    if GodmodeEnabled and LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.MaxHealth = math.huge
+            humanoid.Health = math.huge
+        end
+    end
+end)
+
+-- Ghost Clone Function
+CreateButton("Ghost Clone Toggle", function()
+    GhostCloneEnabled = not GhostCloneEnabled
+    
+    if GhostCloneEnabled and LocalPlayer.Character then
+        -- Create ghost clone
+        GhostClone = LocalPlayer.Character:Clone()
+        GhostClone.Parent = workspace
+        GhostClone:SetPrimaryPartCFrame(LocalPlayer.Character.PrimaryPart.CFrame)
+        
+        -- Make real player invisible
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+                part.CanCollide = false
+            end
+        end
+        
+        -- Sync damage to real player
+        GhostClone.DescendantAdded:Connect(function(descendant)
+            if descendant:IsA("BodyVelocity") or descendant:IsA("BodyForce") then
+                descendant:Destroy()
+            end
+        end)
+    else
+        if GhostClone then
+            GhostClone:Destroy()
+            GhostClone = nil
+        end
+        -- Make real player visible again
+        if LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = 0
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
+-- Reality Glitch Function
+local GlitchTargetTextBox = CreateTextBox("Enter username for Reality Glitch")
+
+CreateButton("Reality Glitch Activate", function()
+    local targetName = GlitchTargetTextBox.Text
+    if targetName == "" then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if (player.Name:lower() == targetName:lower() or player.DisplayName:lower() == targetName:lower()) and player ~= LocalPlayer then
+            -- Create fake sounds
+            local fakeSound = Instance.new("Sound")
+            fakeSound.SoundId = "rbxassetid://130791229" -- Gunshot sound
+            fakeSound.Parent = player.Character.HumanoidRootPart
+            fakeSound:Play()
+            fakeSound.Ended:Connect(function()
+                fakeSound:Destroy()
+            end)
+            
+            -- Random mouse glitch
+            task.spawn(function()
+                wait(math.random(1, 3))
+                if player:GetMouse() then
+                    local originalSensitivity = player:GetMouse().Sensitivity
+                    player:GetMouse().Sensitivity = 0.1
+                    wait(0.5)
+                    player:GetMouse().Sensitivity = originalSensitivity
+                end
+            end)
+            
+            -- Fake player illusion
+            task.spawn(function()
+                for i = 1, 3 do
+                    wait(math.random(2, 4))
+                    local fakePlayer = Instance.new("Part")
+                    fakePlayer.Size = Vector3.new(2, 4, 1)
+                    fakePlayer.BrickColor = BrickColor.new("Bright red")
+                    fakePlayer.Material = Enum.Material.Neon
+                    fakePlayer.Position = player.Character.HumanoidRootPart.Position + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
+                    fakePlayer.Parent = workspace
+                    fakePlayer.Anchored = true
+                    
+                    wait(1.5)
+                    fakePlayer:Destroy()
+                end
+            end)
+            
+            break
+        end
+    end
+end)
 
 -- FullBright Function
 CreateButton("FullBright Toggle", function()
@@ -255,338 +413,4 @@ CreateButton("FullBright Toggle", function()
         Lighting.Brightness = 2
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.ShadowSoftness = 0
-    else
-        if OriginalLightingSettings.Brightness then
-            Lighting.Brightness = OriginalLightingSettings.Brightness
-            Lighting.Ambient = OriginalLightingSettings.Ambient
-            Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient
-            Lighting.ClockTime = OriginalLightingSettings.ClockTime
-            Lighting.FogEnd = OriginalLightingSettings.FogEnd
-            Lighting.GlobalShadows = OriginalLightingSettings.GlobalShadows
-            Lighting.ShadowSoftness = OriginalLightingSettings.ShadowSoftness
-        end
-    end
-end)
-
--- FOV Changer
-CreateSlider("FOV Changer", 50, 120, 70, function(value)
-    Camera.FieldOfView = value
-end)
-
--- Zoom Function
-CreateButton("Zoom Toggle", function()
-    if Camera.FieldOfView == 20 then
-        Camera.FieldOfView = OriginalFOV
-    else
-        OriginalFOV = Camera.FieldOfView
-        Camera.FieldOfView = 20
-    end
-end)
-
--- Free Camera Function
-CreateButton("Free Camera Toggle", function()
-    FreeCamEnabled = not FreeCamEnabled
-    
-    if FreeCamEnabled then
-        local camPos = Camera.CFrame
-        local character = LocalPlayer.Character
-        if character then
-            character:FindFirstChildOfClass("Humanoid").CameraOffset = Vector3.new(0, 0, 0)
-        end
-        
-        RunService:BindToRenderStep("FreeCamera", Enum.RenderPriority.Camera.Value, function()
-            if FreeCamEnabled then
-                local speed = 2
-                local moveVector = Vector3.new(
-                    UserInputService:IsKeyDown(Enum.KeyCode.D) and speed or UserInputService:IsKeyDown(Enum.KeyCode.A) and -speed or 0,
-                    UserInputService:IsKeyDown(Enum.KeyCode.E) and speed or UserInputService:IsKeyDown(Enum.KeyCode.Q) and -speed or 0,
-                    UserInputService:IsKeyDown(Enum.KeyCode.S) and speed or UserInputService:IsKeyDown(Enum.KeyCode.W) and -speed or 0
-                )
-                
-                camPos = camPos * CFrame.new(moveVector)
-                Camera.CFrame = camPos
-                Camera.CameraType = Enum.CameraType.Scriptable
-            end
-        end)
-    else
-        RunService:UnbindFromRenderStep("FreeCamera")
-        Camera.CameraType = Enum.CameraType.Custom
-        if LocalPlayer.Character then
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").CameraOffset = Vector3.new(0, 0, 0)
-        end
-    end
-end)
-
--- Aim FOV Slider
-CreateSlider("Aim FOV", 10, 200, 100, function(value)
-    AimFOV = value
-end)
-
--- Fixed Aim Function with FOV
-CreateButton("Aim Toggle", function()
-    AimEnabled = not AimEnabled
-    
-    if AimEnabled then
-        RunService:BindToRenderStep("AimBot", Enum.RenderPriority.Last.Value, function()
-            if AimEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local closestPlayer = nil
-                local closestDistance = AimFOV
-                local cameraPos = Camera.CFrame.Position
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        local character = player.Character
-                        local rootPart = character.HumanoidRootPart
-                        
-                        -- Calculate screen position
-                        local screenPoint, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-                        
-                        if onScreen then
-                            local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                            
-                            if distance < closestDistance then
-                                closestDistance = distance
-                                closestPlayer = player
-                            end
-                        end
-                    end
-                end
-                
-                if closestPlayer then
-                    AimTarget = closestPlayer.Character.HumanoidRootPart
-                    if AimTarget then
-                        local camCF = Camera.CFrame
-                        local targetPos = AimTarget.Position
-                        local direction = (targetPos - camCF.Position).Unit
-                        Camera.CFrame = CFrame.new(camCF.Position, camCF.Position + direction)
-                    end
-                else
-                    AimTarget = nil
-                end
-            end
-        end)
-    else
-        RunService:UnbindFromRenderStep("AimBot")
-        AimTarget = nil
-    end
-end)
-
--- ESP Function
-CreateButton("ESP Toggle", function()
-    ESPEnabled = not ESPEnabled
-    if ESPEnabled then
-        for i, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local Highlight = Instance.new("Highlight")
-                Highlight.Parent = player.Character
-                Highlight.Adornee = player.Character
-                Highlight.FillColor = Color3.fromRGB(255, 50, 50)
-                Highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-            end
-        end
-    else
-        for i, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                local Highlight = player.Character:FindFirstChildWhichIsA("Highlight")
-                if Highlight then
-                    Highlight:Destroy()
-                end
-            end
-        end
-    end
-end)
-
--- Noclip Function
-CreateButton("Noclip Toggle", function()
-    NoclipEnabled = not NoclipEnabled
-end)
-
-RunService.Stepped:Connect(function()
-    if NoclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- Kill All Function
-CreateButton("Kill All Players", function()
-    for i, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            player.Character:BreakJoints()
-        end
-    end
-end)
-
--- Shoot Through Walls
-CreateButton("Shoot Through Walls Toggle", function()
-    ShootThroughWallEnabled = not ShootThroughWallEnabled
-    
-    if ShootThroughWallEnabled then
-        local mt = getrawmetatable(game)
-        OldNamecall = mt.__namecall
-        
-        setreadonly(mt, false)
-        
-        mt.__namecall = newcclosure(function(...)
-            local method = getnamecallmethod()
-            local args = {...}
-            
-            if method == "FindPartOnRayWithIgnoreList" and ShootThroughWallEnabled then
-                local newIgnoreList = {}
-                for _, item in pairs(args[2]) do
-                    if not item:IsA("Part") or (item.Name ~= "Wall" and item.Name ~= "Part" and item.Name ~= "Baseplate") then
-                        table.insert(newIgnoreList, item)
-                    end
-                end
-                args[2] = newIgnoreList
-            end
-            
-            return OldNamecall(unpack(args))
-        end)
-        
-        setreadonly(mt, true)
-    else
-        if OldNamecall then
-            local mt = getrawmetatable(game)
-            setreadonly(mt, false)
-            mt.__namecall = OldNamecall
-            setreadonly(mt, true)
-        end
-    end
-end)
-
--- Infinite Jump
-CreateButton("Infinite Jump Toggle", function()
-    InfJumpEnabled = not InfJumpEnabled
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled then
-        LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState("Jumping")
-    end
-end)
-
--- High Speed
-CreateButton("High Speed Toggle", function()
-    SpeedEnabled = not SpeedEnabled
-    if SpeedEnabled then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 100
-    else
-        LocalPlayer.Character.Humanoid.WalkSpeed = 16
-    end
-end)
-
--- High Jump
-CreateButton("High Jump Toggle", function()
-    HighJumpEnabled = not HighJumpEnabled
-    if HighJumpEnabled then
-        LocalPlayer.Character.Humanoid.JumpPower = 200
-    else
-        LocalPlayer.Character.Humanoid.JumpPower = 50
-    end
-end)
-
--- Invisible Player Function
-CreateButton("Invisible Player Toggle", function()
-    InvisibleEnabled = not InvisibleEnabled
-    if InvisibleEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 1
-                part.CanCollide = false
-            end
-        end
-    else
-        if LocalPlayer.Character then
-            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Transparency = 0
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end)
-
--- AFK Function
-CreateButton("AFK Mode Toggle", function()
-    AFKEnabled = not AFKEnabled
-    if AFKEnabled then
-        for i, v in pairs(getconnections(LocalPlayer.Idled)) do
-            v:Disable()
-        end
-    end
-end)
-
--- AntiKick
-CreateButton("AntiKick Toggle", function()
-    AntiKickEnabled = not AntiKickEnabled
-end)
-
--- AntiBan
-CreateButton("AntiBan Toggle", function()
-    AntiBanEnabled = not AntiBanEnabled
-end)
-
--- Player Teleport by Username
-local TeleportTextBox = CreateTextBox("Enter player username")
-
-CreateButton("Teleport to Player", function()
-    local targetName = TeleportTextBox.Text
-    if targetName == "" then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Name:lower() == targetName:lower() or player.DisplayName:lower() == targetName:lower() then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character:MoveTo(player.Character.HumanoidRootPart.Position)
-                break
-            end
-        end
-    end
-end)
-
--- Kill Player by Username
-local KillPlayerTextBox = CreateTextBox("Enter username to kill")
-
-CreateButton("Kill Player by Username", function()
-    local targetName = KillPlayerTextBox.Text
-    if targetName == "" then return end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if (player.Name:lower() == targetName:lower() or player.DisplayName:lower() == targetName:lower()) and player ~= LocalPlayer then
-            if player.Character then
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.Health = 0
-                    player.Character:BreakJoints()
-                end
-                break
-            end
-        end
-    end
-end)
-
--- Give Tool by ID
-local ToolIdTextBox = CreateTextBox("Enter Tool ID from Toolbox")
-
-CreateButton("Give Tool", function()
-    local toolId = tonumber(ToolIdTextBox.Text)
-    if not toolId then return end
-    
-    local tool = game:GetService("InsertService"):LoadAsset(toolId)
-    if tool then
-        for _, item in pairs(tool:GetChildren()) do
-            if item:IsA("Tool") or item:IsA("HopperBin") then
-                item.Parent = LocalPlayer.Backpack
-                break
-            end
-        end
-    end
-end)
+        Lighting.ClockTime
