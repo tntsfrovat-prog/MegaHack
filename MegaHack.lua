@@ -3,15 +3,19 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Beautiful Rounded GUI with Blue Theme
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+-- Modern Watermark with Blue Theme
 local WatermarkFrame = Instance.new("Frame")
 WatermarkFrame.Size = UDim2.new(0, 220, 0, 60)
 WatermarkFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
@@ -42,7 +46,7 @@ WatermarkLabel.Parent = WatermarkFrame
 
 -- Main GUI Container
 local MainGUI = Instance.new("Frame")
-MainGUI.Size = UDim2.new(0, 350, 0, 650)
+MainGUI.Size = UDim2.new(0, 350, 0, 800)
 MainGUI.Position = UDim2.new(0.5, -175, 0.5, -300)
 MainGUI.BackgroundColor3 = Color3.fromRGB(0, 60, 120)
 MainGUI.BackgroundTransparency = 0.1
@@ -67,9 +71,10 @@ ScrollFrame.Position = UDim2.new(0, 10, 0, 10)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.ScrollBarThickness = 6
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 2.8, 0)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 3.5, 0)
 ScrollFrame.Parent = MainGUI
 
+-- Function to create beautiful buttons
 local buttonYPosition = 0
 local function CreateButton(Name, Callback)
     local Button = Instance.new("TextButton")
@@ -129,12 +134,89 @@ local function CreateTextBox(Placeholder)
     return TextBox
 end
 
+local function CreateSlider(Name, Min, Max, Default, Callback)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Size = UDim2.new(1, -10, 0, 50)
+    SliderFrame.Position = UDim2.new(0, 5, 0, buttonYPosition)
+    SliderFrame.BackgroundTransparency = 1
+    SliderFrame.Parent = ScrollFrame
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.Text = Name
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 12
+    Label.Parent = SliderFrame
+    
+    local Slider = Instance.new("Frame")
+    Slider.Size = UDim2.new(1, 0, 0, 15)
+    Slider.Position = UDim2.new(0, 0, 0, 25)
+    Slider.BackgroundColor3 = Color3.fromRGB(0, 80, 160)
+    Slider.BorderSizePixel = 0
+    Slider.Parent = SliderFrame
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 7)
+    UICorner.Parent = Slider
+    
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+    Fill.Position = UDim2.new(0, 0, 0, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Slider
+    
+    local UICorner2 = Instance.new("UICorner")
+    UICorner2.CornerRadius = UDim.new(0, 7)
+    UICorner2.Parent = Fill
+    
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0, 40, 0, 15)
+    ValueLabel.Position = UDim2.new(1, 5, 0, 25)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(Default)
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ValueLabel.Font = Enum.Font.Gotham
+    ValueLabel.TextSize = 12
+    ValueLabel.Parent = SliderFrame
+    
+    Slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local function UpdateSlider(input)
+                local pos = UDim2.new(math.clamp((input.Position.X - Slider.AbsolutePosition.X) / Slider.AbsoluteSize.X, 0, 1), 0, 1, 0)
+                Fill.Size = pos
+                local value = math.floor(Min + (pos.X.Scale * (Max - Min)))
+                ValueLabel.Text = tostring(value)
+                Callback(value)
+            end
+            
+            UpdateSlider(input)
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    connection:Disconnect()
+                else
+                    UpdateSlider(input)
+                end
+            end)
+        end
+    end)
+    
+    buttonYPosition += 55
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, buttonYPosition)
+    return SliderFrame
+end
+
+-- Fixed Mobile Click Detection
 WatermarkFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         MainGUI.Visible = not MainGUI.Visible
     end
 end)
 
+-- Functions
 local ESPEnabled = false
 local NoclipEnabled = false
 local AimEnabled = false
@@ -147,8 +229,153 @@ local SpeedEnabled = false
 local HighJumpEnabled = false
 local InvisibleEnabled = false
 local AFKEnabled = false
+local FullBrightEnabled = false
+local FreeCamEnabled = false
 local OldNamecall
+local OriginalFOV = 70
+local OriginalLightingSettings = {}
+local AimFOV = 100
+local AimTarget = nil
 
+-- FullBright Function
+CreateButton("FullBright Toggle", function()
+    FullBrightEnabled = not FullBrightEnabled
+    
+    if FullBrightEnabled then
+        OriginalLightingSettings = {
+            Brightness = Lighting.Brightness,
+            Ambient = Lighting.Ambient,
+            OutdoorAmbient = Lighting.OutdoorAmbient,
+            ClockTime = Lighting.ClockTime,
+            FogEnd = Lighting.FogEnd,
+            GlobalShadows = Lighting.GlobalShadows,
+            ShadowSoftness = Lighting.ShadowSoftness
+        }
+        
+        Lighting.Brightness = 2
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        Lighting.ShadowSoftness = 0
+    else
+        if OriginalLightingSettings.Brightness then
+            Lighting.Brightness = OriginalLightingSettings.Brightness
+            Lighting.Ambient = OriginalLightingSettings.Ambient
+            Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient
+            Lighting.ClockTime = OriginalLightingSettings.ClockTime
+            Lighting.FogEnd = OriginalLightingSettings.FogEnd
+            Lighting.GlobalShadows = OriginalLightingSettings.GlobalShadows
+            Lighting.ShadowSoftness = OriginalLightingSettings.ShadowSoftness
+        end
+    end
+end)
+
+-- FOV Changer
+CreateSlider("FOV Changer", 50, 120, 70, function(value)
+    Camera.FieldOfView = value
+end)
+
+-- Zoom Function
+CreateButton("Zoom Toggle", function()
+    if Camera.FieldOfView == 20 then
+        Camera.FieldOfView = OriginalFOV
+    else
+        OriginalFOV = Camera.FieldOfView
+        Camera.FieldOfView = 20
+    end
+end)
+
+-- Free Camera Function
+CreateButton("Free Camera Toggle", function()
+    FreeCamEnabled = not FreeCamEnabled
+    
+    if FreeCamEnabled then
+        local camPos = Camera.CFrame
+        local character = LocalPlayer.Character
+        if character then
+            character:FindFirstChildOfClass("Humanoid").CameraOffset = Vector3.new(0, 0, 0)
+        end
+        
+        RunService:BindToRenderStep("FreeCamera", Enum.RenderPriority.Camera.Value, function()
+            if FreeCamEnabled then
+                local speed = 2
+                local moveVector = Vector3.new(
+                    UserInputService:IsKeyDown(Enum.KeyCode.D) and speed or UserInputService:IsKeyDown(Enum.KeyCode.A) and -speed or 0,
+                    UserInputService:IsKeyDown(Enum.KeyCode.E) and speed or UserInputService:IsKeyDown(Enum.KeyCode.Q) and -speed or 0,
+                    UserInputService:IsKeyDown(Enum.KeyCode.S) and speed or UserInputService:IsKeyDown(Enum.KeyCode.W) and -speed or 0
+                )
+                
+                camPos = camPos * CFrame.new(moveVector)
+                Camera.CFrame = camPos
+                Camera.CameraType = Enum.CameraType.Scriptable
+            end
+        end)
+    else
+        RunService:UnbindFromRenderStep("FreeCamera")
+        Camera.CameraType = Enum.CameraType.Custom
+        if LocalPlayer.Character then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").CameraOffset = Vector3.new(0, 0, 0)
+        end
+    end
+end)
+
+-- Aim FOV Slider
+CreateSlider("Aim FOV", 10, 200, 100, function(value)
+    AimFOV = value
+end)
+
+-- Fixed Aim Function with FOV
+CreateButton("Aim Toggle", function()
+    AimEnabled = not AimEnabled
+    
+    if AimEnabled then
+        RunService:BindToRenderStep("AimBot", Enum.RenderPriority.Last.Value, function()
+            if AimEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local closestPlayer = nil
+                local closestDistance = AimFOV
+                local cameraPos = Camera.CFrame.Position
+                
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local character = player.Character
+                        local rootPart = character.HumanoidRootPart
+                        
+                        -- Calculate screen position
+                        local screenPoint, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                        
+                        if onScreen then
+                            local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                            
+                            if distance < closestDistance then
+                                closestDistance = distance
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+                
+                if closestPlayer then
+                    AimTarget = closestPlayer.Character.HumanoidRootPart
+                    if AimTarget then
+                        local camCF = Camera.CFrame
+                        local targetPos = AimTarget.Position
+                        local direction = (targetPos - camCF.Position).Unit
+                        Camera.CFrame = CFrame.new(camCF.Position, camCF.Position + direction)
+                    end
+                else
+                    AimTarget = nil
+                end
+            end
+        end)
+    else
+        RunService:UnbindFromRenderStep("AimBot")
+        AimTarget = nil
+    end
+end)
+
+-- ESP Function
 CreateButton("ESP Toggle", function()
     ESPEnabled = not ESPEnabled
     if ESPEnabled then
@@ -173,6 +400,7 @@ CreateButton("ESP Toggle", function()
     end
 end)
 
+-- Noclip Function
 CreateButton("Noclip Toggle", function()
     NoclipEnabled = not NoclipEnabled
 end)
@@ -187,10 +415,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-CreateButton("Aim Toggle", function()
-    AimEnabled = not AimEnabled
-end)
-
+-- Kill All Function
 CreateButton("Kill All Players", function()
     for i, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -199,6 +424,7 @@ CreateButton("Kill All Players", function()
     end
 end)
 
+-- Shoot Through Walls
 CreateButton("Shoot Through Walls Toggle", function()
     ShootThroughWallEnabled = not ShootThroughWallEnabled
     
@@ -236,6 +462,7 @@ CreateButton("Shoot Through Walls Toggle", function()
     end
 end)
 
+-- Infinite Jump
 CreateButton("Infinite Jump Toggle", function()
     InfJumpEnabled = not InfJumpEnabled
 end)
@@ -246,6 +473,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
+-- High Speed
 CreateButton("High Speed Toggle", function()
     SpeedEnabled = not SpeedEnabled
     if SpeedEnabled then
@@ -255,6 +483,7 @@ CreateButton("High Speed Toggle", function()
     end
 end)
 
+-- High Jump
 CreateButton("High Jump Toggle", function()
     HighJumpEnabled = not HighJumpEnabled
     if HighJumpEnabled then
@@ -264,31 +493,29 @@ CreateButton("High Jump Toggle", function()
     end
 end)
 
-CreateButton("Invisible Toggle", function()
+-- Invisible Player Function
+CreateButton("Invisible Player Toggle", function()
     InvisibleEnabled = not InvisibleEnabled
-    if InvisibleEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                for _, part in pairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Transparency = 1
-                    end
-                end
+    if InvisibleEnabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+                part.CanCollide = false
             end
         end
     else
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Character then
-                for _, part in pairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Transparency = 0
-                    end
+        if LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = 0
+                    part.CanCollide = true
                 end
             end
         end
     end
 end)
 
+-- AFK Function
 CreateButton("AFK Mode Toggle", function()
     AFKEnabled = not AFKEnabled
     if AFKEnabled then
@@ -298,14 +525,17 @@ CreateButton("AFK Mode Toggle", function()
     end
 end)
 
+-- AntiKick
 CreateButton("AntiKick Toggle", function()
     AntiKickEnabled = not AntiKickEnabled
 end)
 
+-- AntiBan
 CreateButton("AntiBan Toggle", function()
     AntiBanEnabled = not AntiBanEnabled
 end)
 
+-- Player Teleport by Username
 local TeleportTextBox = CreateTextBox("Enter player username")
 
 CreateButton("Teleport to Player", function()
@@ -322,6 +552,7 @@ CreateButton("Teleport to Player", function()
     end
 end)
 
+-- Kill Player by Username
 local KillPlayerTextBox = CreateTextBox("Enter username to kill")
 
 CreateButton("Kill Player by Username", function()
@@ -342,6 +573,7 @@ CreateButton("Kill Player by Username", function()
     end
 end)
 
+-- Give Tool by ID
 local ToolIdTextBox = CreateTextBox("Enter Tool ID from Toolbox")
 
 CreateButton("Give Tool", function()
