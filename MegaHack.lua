@@ -1,4 +1,4 @@
--- SATWARE CHEATS v2.2 - Fixed Kill Player & Shoot Through Walls
+-- SATWARE CHEATS v2.0
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -7,13 +7,11 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Beautiful Rounded GUI with Blue Theme
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Modern Watermark with Blue Theme
 local WatermarkFrame = Instance.new("Frame")
 WatermarkFrame.Size = UDim2.new(0, 220, 0, 60)
 WatermarkFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
@@ -72,7 +70,6 @@ ScrollFrame.ScrollBarThickness = 6
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 2.8, 0)
 ScrollFrame.Parent = MainGUI
 
--- Function to create beautiful buttons
 local buttonYPosition = 0
 local function CreateButton(Name, Callback)
     local Button = Instance.new("TextButton")
@@ -132,14 +129,12 @@ local function CreateTextBox(Placeholder)
     return TextBox
 end
 
--- Fixed Mobile Click Detection
 WatermarkFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         MainGUI.Visible = not MainGUI.Visible
     end
 end)
 
--- Functions
 local ESPEnabled = false
 local NoclipEnabled = false
 local AimEnabled = false
@@ -154,7 +149,6 @@ local InvisibleEnabled = false
 local AFKEnabled = false
 local OldNamecall
 
--- ESP Function
 CreateButton("ESP Toggle", function()
     ESPEnabled = not ESPEnabled
     if ESPEnabled then
@@ -179,7 +173,6 @@ CreateButton("ESP Toggle", function()
     end
 end)
 
--- Noclip Function
 CreateButton("Noclip Toggle", function()
     NoclipEnabled = not NoclipEnabled
 end)
@@ -194,12 +187,10 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Aim Function
 CreateButton("Aim Toggle", function()
     AimEnabled = not AimEnabled
 end)
 
--- Kill All Function
 CreateButton("Kill All Players", function()
     for i, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -208,7 +199,6 @@ CreateButton("Kill All Players", function()
     end
 end)
 
--- Shoot Through Walls (Fixed Working Version)
 CreateButton("Shoot Through Walls Toggle", function()
     ShootThroughWallEnabled = not ShootThroughWallEnabled
     
@@ -223,7 +213,6 @@ CreateButton("Shoot Through Walls Toggle", function()
             local args = {...}
             
             if method == "FindPartOnRayWithIgnoreList" and ShootThroughWallEnabled then
-                -- Remove all walls and obstacles from ignore list
                 local newIgnoreList = {}
                 for _, item in pairs(args[2]) do
                     if not item:IsA("Part") or (item.Name ~= "Wall" and item.Name ~= "Part" and item.Name ~= "Baseplate") then
@@ -247,7 +236,6 @@ CreateButton("Shoot Through Walls Toggle", function()
     end
 end)
 
--- Infinite Jump
 CreateButton("Infinite Jump Toggle", function()
     InfJumpEnabled = not InfJumpEnabled
 end)
@@ -258,7 +246,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- High Speed
 CreateButton("High Speed Toggle", function()
     SpeedEnabled = not SpeedEnabled
     if SpeedEnabled then
@@ -268,7 +255,6 @@ CreateButton("High Speed Toggle", function()
     end
 end)
 
--- High Jump
 CreateButton("High Jump Toggle", function()
     HighJumpEnabled = not HighJumpEnabled
     if HighJumpEnabled then
@@ -278,7 +264,6 @@ CreateButton("High Jump Toggle", function()
     end
 end)
 
--- Invisible Function (Works for everyone)
 CreateButton("Invisible Toggle", function()
     InvisibleEnabled = not InvisibleEnabled
     if InvisibleEnabled then
@@ -304,7 +289,6 @@ CreateButton("Invisible Toggle", function()
     end
 end)
 
--- AFK Function
 CreateButton("AFK Mode Toggle", function()
     AFKEnabled = not AFKEnabled
     if AFKEnabled then
@@ -314,17 +298,14 @@ CreateButton("AFK Mode Toggle", function()
     end
 end)
 
--- AntiKick
 CreateButton("AntiKick Toggle", function()
     AntiKickEnabled = not AntiKickEnabled
 end)
 
--- AntiBan
 CreateButton("AntiBan Toggle", function()
     AntiBanEnabled = not AntiBanEnabled
 end)
 
--- Player Teleport by Username
 local TeleportTextBox = CreateTextBox("Enter player username")
 
 CreateButton("Teleport to Player", function()
@@ -341,7 +322,6 @@ CreateButton("Teleport to Player", function()
     end
 end)
 
--- Kill Player by Username (Instant Death)
 local KillPlayerTextBox = CreateTextBox("Enter username to kill")
 
 CreateButton("Kill Player by Username", function()
@@ -362,7 +342,6 @@ CreateButton("Kill Player by Username", function()
     end
 end)
 
--- Give Tool by ID
 local ToolIdTextBox = CreateTextBox("Enter Tool ID from Toolbox")
 
 CreateButton("Give Tool", function()
