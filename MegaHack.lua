@@ -1,4 +1,4 @@
--- SATWARE CHEATS v2.0
+-- SATWARE CHEATS 2.0
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -8,6 +8,8 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 -- Beautiful Rounded GUI with Blue Theme
 local ScreenGui = Instance.new("ScreenGui")
@@ -71,7 +73,7 @@ ScrollFrame.Position = UDim2.new(0, 10, 0, 10)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.ScrollBarThickness = 6
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 3.5, 0)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
 ScrollFrame.Parent = MainGUI
 
 -- Function to create beautiful buttons
@@ -233,11 +235,532 @@ local FullBrightEnabled = false
 local FreeCamEnabled = false
 local FlyEnabled = false
 local GodmodeEnabled = false
+local BoxESPEnabled = false
+local SpinEnabled = false
+local DarkSkyEnabled = false
+local ThirdPersonEnabled = false
+local AntiLagEnabled = false
+local GreenMapEnabled = false
+local RedMapEnabled = false
+local BlueMapEnabled = false
+local R6Enabled = false
+local R15Enabled = false
+local MouseUnlocked = false
 local OldNamecall
 local OriginalFOV = 70
 local OriginalLightingSettings = {}
+local OriginalSky = Lighting:FindFirstChildOfClass("Sky")
 local AimFOV = 100
 local AimTarget = nil
+local BoxESPHandles = {}
+local SpinSpeed = 10
+local ThirdPersonDistance = 10
+local Waypoints = {}
+local Configs = {}
+
+-- Anti Lag Function
+CreateButton("Anti Lag Toggle", function()
+    AntiLagEnabled = not AntiLagEnabled
+    
+    if AntiLagEnabled then
+        -- Remove unnecessary parts
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Part") and not obj.Anchored and obj.Mass > 100 then
+                obj:Destroy()
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj:Destroy()
+            elseif obj:IsA("ParticleEmitter") then
+                obj.Enabled = false
+            end
+        end
+        
+        -- Reduce graphics quality
+        settings().Rendering.QualityLevel = 1
+        settings().Rendering.MeshCacheSize = 10
+        settings().Rendering.EnableFRM = false
+        
+        -- Disable shadows
+        Lighting.GlobalShadows = false
+        Lighting.ShadowSoftness = 0
+        
+        -- Clear garbage
+        game:GetService("ContentProvider"):ClearContent()
+        collectgarbage()
+    else
+        -- Restore settings
+        settings().Rendering.QualityLevel = 10
+        settings().Rendering.MeshCacheSize = 100
+        settings().Rendering.EnableFRM = true
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.5
+    end
+end)
+
+-- TP to Object by Name
+local ObjectNameTextBox = CreateTextBox("Enter object name to TP")
+
+CreateButton("TP to Object", function()
+    local objectName = ObjectNameTextBox.Text
+    if objectName == "" then return end
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Part") and obj.Name:lower():find(objectName:lower()) then
+            LocalPlayer.Character:MoveTo(obj.Position + Vector3.new(0, 5, 0))
+            break
+        end
+    end
+end)
+
+-- Waypoint System
+local WaypointNameTextBox = CreateTextBox("Enter waypoint name")
+
+CreateButton("Add Waypoint", function()
+    local waypointName = WaypointNameTextBox.Text
+    if waypointName == "" then return end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        Waypoints[waypointName] = LocalPlayer.Character.HumanoidRootPart.Position
+        
+        -- Create visual marker
+        local marker = Instance.new("Part")
+        marker.Name = "Waypoint_" .. waypointName
+        marker.Size = Vector3.new(2, 5, 2)
+        marker.Position = Waypoints[waypointName] + Vector3.new(0, 2.5, 0)
+        marker.Anchored = true
+        marker.CanCollide = false
+        marker.Material = Enum.Material.Neon
+        marker.BrickColor = BrickColor.new("Bright green")
+        marker.Parent = workspace
+        
+        local beam = Instance.new("Beam")
+        beam.Attachment0 = Instance.new("Attachment")
+        beam.Attachment0.Parent = marker
+        beam.Attachment1 = Instance.new("Attachment")
+        beam.Attachment1.Parent = marker
+        beam.Attachment1.Position = Vector3.new(0, 10, 0)
+        beam.Color = ColorSequence.new(Color3.new(0, 1, 0))
+        beam.Parent = marker
+    end
+end)
+
+CreateButton("TP to Waypoint", function()
+    local waypointName = WaypointNameTextBox.Text
+    if waypointName == "" or not Waypoints[waypointName] then return end
+    
+    LocalPlayer.Character:MoveTo(Waypoints[waypointName])
+end)
+
+CreateButton("Remove Waypoint", function()
+    local waypointName = WaypointNameTextBox.Text
+    if waypointName == "" then return end
+    
+    Waypoints[waypointName] = nil
+    local marker = workspace:FindFirstChild("Waypoint_" .. waypointName)
+    if marker then
+        marker:Destroy()
+    end
+end)
+
+-- Map Color Functions
+CreateButton("Green Map", function()
+    GreenMapEnabled = not GreenMapEnabled
+    RedMapEnabled = false
+    BlueMapEnabled = false
+    
+    if GreenMapEnabled then
+        Lighting.Ambient = Color3.fromRGB(0, 50, 0)
+        Lighting.OutdoorAmbient = Color3.fromRGB(0, 30, 0)
+        Lighting.FogColor = Color3.fromRGB(0, 20, 0)
+    else
+        Lighting.Ambient = OriginalLightingSettings.Ambient or Color3.fromRGB(1, 1, 1)
+        Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient or Color3.fromRGB(128, 128, 128)
+        Lighting.FogColor = OriginalLightingSettings.FogColor or Color3.fromRGB(191, 191, 191)
+    end
+end)
+
+CreateButton("Red Map", function()
+    RedMapEnabled = not RedMapEnabled
+    GreenMapEnabled = false
+    BlueMapEnabled = false
+    
+    if RedMapEnabled then
+        Lighting.Ambient = Color3.fromRGB(50, 0, 0)
+        Lighting.OutdoorAmbient = Color3.fromRGB(30, 0, 0)
+        Lighting.FogColor = Color3.fromRGB(20, 0, 0)
+    else
+        Lighting.Ambient = OriginalLightingSettings.Ambient or Color3.fromRGB(1, 1, 1)
+        Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient or Color3.fromRGB(128, 128, 128)
+        Lighting.FogColor = OriginalLightingSettings.FogColor or Color3.fromRGB(191, 191, 191)
+    end
+end)
+
+CreateButton("Blue Map", function()
+    BlueMapEnabled = not BlueMapEnabled
+    GreenMapEnabled = false
+    RedMapEnabled = false
+    
+    if BlueMapEnabled then
+        Lighting.Ambient = Color3.fromRGB(0, 0, 50)
+        Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 30)
+        Lighting.FogColor = Color3.fromRGB(0, 0, 20)
+    else
+        Lighting.Ambient = OriginalLightingSettings.Ambient or Color3.fromRGB(1, 1, 1)
+        Lighting.OutdoorAmbient = OriginalLightingSettings.OutdoorAmbient or Color3.fromRGB(128, 128, 128)
+        Lighting.FogColor = OriginalLightingSettings.FogColor or Color3.fromRGB(191, 191, 191)
+    end
+end)
+
+-- Kick Player
+local KickPlayerTextBox = CreateTextBox("Enter username to kick")
+
+CreateButton("Kick Player", function()
+    local targetName = KickPlayerTextBox.Text
+    if targetName == "" then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if (player.Name:lower() == targetName:lower() or player.DisplayName:lower() == targetName:lower()) and player ~= LocalPlayer then
+            player:Kick("Kicked by SATWARE CHEATS")
+            break
+        end
+    end
+end)
+
+-- Config System
+local ConfigNameTextBox = CreateTextBox("Enter config name")
+
+CreateButton("Save Config", function()
+    local configName = ConfigNameTextBox.Text
+    if configName == "" then return end
+    
+    Configs[configName] = {
+        WalkSpeed = LocalPlayer.Character.Humanoid.WalkSpeed,
+        JumpPower = LocalPlayer.Character.Humanoid.JumpPower,
+        FOV = Camera.FieldOfView
+    }
+    
+    -- Save to file (pseudo-save)
+    print("Config '" .. configName .. "' saved!")
+end)
+
+CreateButton("Load Config", function()
+    local configName = ConfigNameTextBox.Text
+    if configName == "" or not Configs[configName] then return end
+    
+    local config = Configs[configName]
+    LocalPlayer.Character.Humanoid.WalkSpeed = config.WalkSpeed
+    LocalPlayer.Character.Humanoid.JumpPower = config.JumpPower
+    Camera.FieldOfView = config.FOV
+end)
+
+-- Unlock Mouse with F Key
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        MouseUnlocked = not MouseUnlocked
+        if MouseUnlocked then
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        else
+            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+        end
+    end
+end)
+
+CreateButton("Toggle Mouse Lock (F Key)", function()
+    MouseUnlocked = not MouseUnlocked
+    if MouseUnlocked then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    else
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    end
+end)
+
+-- Change Nickname
+local NicknameTextBox = CreateTextBox("Enter new nickname")
+
+CreateButton("Change Nickname", function()
+    local newName = NicknameTextBox.Text
+    if newName == "" then return end
+    
+    LocalPlayer.DisplayName = newName
+end)
+
+-- Change Skin/Appearance
+local SkinColorSlider = CreateSlider("Skin Color", 0, 100, 50, function(value)
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("Part") and part.Name == "Head" then
+                part.BrickColor = BrickColor.new("Bright yellow")
+            elseif part:IsA("Part") and (part.Name == "Torso" or part.Name:find("Arm") or part.Name:find("Leg")) then
+                part.BrickColor = BrickColor.new("Bright yellow")
+            end
+        end
+    end
+end)
+
+-- R6 Character
+CreateButton("Set R6 Character", function()
+    R6Enabled = true
+    R15Enabled = false
+    
+    if LocalPlayer.Character then
+        LocalPlayer.Character:BreakJoints()
+    end
+    
+    LocalPlayer.CharacterAdded:Connect(function(character)
+        wait(1)
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.HipHeight = 0
+        end
+    end)
+end)
+
+-- R15 Character
+CreateButton("Set R15 Character", function()
+    R15Enabled = true
+    R6Enabled = false
+    
+    if LocalPlayer.Character then
+        LocalPlayer.Character:BreakJoints()
+    end
+    
+    LocalPlayer.CharacterAdded:Connect(function(character)
+        wait(1)
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.HipHeight = 1
+        end
+    end)
+end)
+
+-- Animation Hacks
+CreateButton("Animation Hacks", function()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            -- Load custom animations
+            local animationIds = {
+                125750726, -- Float
+                125751173, -- Levitate
+                125751434, -- Spin
+                125751879  -- Zombie
+            }
+            
+            for _, animId in pairs(animationIds) do
+                local animation = Instance.new("Animation")
+                animation.AnimationId = "rbxassetid://" .. animId
+                local track = humanoid:LoadAnimation(animation)
+                track:Play()
+                track.Looped = true
+            end
+        end
+    end
+end)
+
+-- Delete World
+CreateButton("DELETE WORLD", function()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Part") or obj:IsA("Model") or obj:IsA("MeshPart") then
+            obj:Destroy()
+        end
+    end
+    
+    -- Clear lighting
+    for _, obj in pairs(Lighting:GetChildren()) do
+        if not obj:IsA("Sky") then
+            obj:Destroy()
+        end
+    end
+end)
+
+-- Third Person View Function
+CreateButton("Third Person Toggle", function()
+    ThirdPersonEnabled = not ThirdPersonEnabled
+    
+    if ThirdPersonEnabled and LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.CameraOffset = Vector3.new(0, 0, 0)
+            
+            RunService:BindToRenderStep("ThirdPerson", Enum.RenderPriority.Camera.Value, function()
+                if ThirdPersonEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local rootPart = LocalPlayer.Character.HumanoidRootPart
+                    local camera = workspace.CurrentCamera
+                    
+                    -- Calculate camera position behind character
+                    local lookVector = rootPart.CFrame.LookVector
+                    local cameraPosition = rootPart.Position - (lookVector * ThirdPersonDistance) + Vector3.new(0, 3, 0)
+                    
+                    -- Set camera to look at character
+                    camera.CFrame = CFrame.new(cameraPosition, rootPart.Position + Vector3.new(0, 2, 0))
+                    camera.CameraType = Enum.CameraType.Scriptable
+                end
+            end)
+        end
+    else
+        RunService:UnbindFromRenderStep("ThirdPerson")
+        if LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.CameraOffset = Vector3.new(0, 0, 0)
+            end
+        end
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end)
+
+-- Third Person Distance Slider
+CreateSlider("Third Person Distance", 5, 20, 10, function(value)
+    ThirdPersonDistance = value
+end)
+
+-- Box ESP Function
+CreateButton("Box ESP Toggle", function()
+    BoxESPEnabled = not BoxESPEnabled
+    
+    if BoxESPEnabled then
+        -- Clear existing boxes
+        for _, box in pairs(BoxESPHandles) do
+            if box then
+                box:Destroy()
+            end
+        end
+        BoxESPHandles = {}
+        
+        -- Create boxes for existing players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                CreateBoxESP(player.Character)
+            end
+        end
+        
+        -- Connect to player added event
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function(character)
+                if BoxESPEnabled then
+                    CreateBoxESP(character)
+                end
+            end)
+        end)
+        
+        -- Connect to existing players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                player.CharacterAdded:Connect(function(character)
+                    if BoxESPEnabled then
+                        CreateBoxESP(character)
+                    end
+                end)
+            end
+        end
+    else
+        -- Remove all boxes
+        for _, box in pairs(BoxESPHandles) do
+            if box then
+                box:Destroy()
+            end
+        end
+        BoxESPHandles = {}
+    end
+end)
+
+function CreateBoxESP(character)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "BoxESP"
+    box.Adornee = humanoidRootPart
+    box.AlwaysOnTop = true
+    box.ZIndex = 10
+    box.Size = Vector3.new(4, 6, 2)
+    box.Transparency = 0.3
+    box.Color3 = Color3.fromRGB(255, 0, 0)
+    box.Parent = humanoidRootPart
+    
+    BoxESPHandles[character] = box
+    
+    -- Update box position
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if not character or not character.Parent or not humanoidRootPart or not BoxESPEnabled then
+            connection:Disconnect()
+            if box then
+                box:Destroy()
+            end
+            return
+        end
+        box.Adornee = humanoidRootPart
+    end)
+end
+
+-- Spinbot Function
+CreateButton("Spinbot Toggle", function()
+    SpinEnabled = not SpinEnabled
+    
+    if SpinEnabled and LocalPlayer.Character then
+        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            RunService:BindToRenderStep("Spinbot", Enum.RenderPriority.First.Value, function()
+                if SpinEnabled and rootPart then
+                    rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0)
+                end
+            end)
+        end
+    else
+        RunService:UnbindFromRenderStep("Spinbot")
+    end
+end)
+
+-- Spin Speed Slider
+CreateSlider("Spin Speed", 1, 50, 10, function(value)
+    SpinSpeed = value
+end)
+
+-- Dark Sky Function
+CreateButton("Dark Sky Toggle", function()
+    DarkSkyEnabled = not DarkSkyEnabled
+    
+    if DarkSkyEnabled then
+        -- Remove original sky
+        if OriginalSky then
+            OriginalSky.Parent = nil
+        end
+        
+        -- Create dark sky
+        local newSky = Instance.new("Sky")
+        newSky.Name = "DarkSky"
+        newSky.SkyboxBk = "http://www.roblox.com/asset/?id=264909758"
+        newSky.SkyboxDn = "http://www.roblox.com/asset/?id=264909758"
+        newSky.SkyboxFt = "http://www.roblox.com/asset/?id=264909758"
+        newSky.SkyboxLf = "http://www.roblox.com/asset/?id=264909758"
+        newSky.SkyboxRt = "http://www.roblox.com/asset/?id=264909758"
+        newSky.SkyboxUp = "http://www.roblox.com/asset/?id=264909758"
+        newSky.Parent = Lighting
+        
+        -- Set dark lighting
+        Lighting.Ambient = Color3.fromRGB(30, 30, 30)
+        Lighting.Brightness = 0.1
+        Lighting.OutdoorAmbient = Color3.fromRGB(30, 30, 30)
+        Lighting.FogColor = Color3.fromRGB(10, 10, 10)
+        Lighting.FogEnd = 500
+        Lighting.ClockTime = 0
+    else
+        -- Restore original sky and lighting
+        local darkSky = Lighting:FindFirstChild("DarkSky")
+        if darkSky then
+            darkSky:Destroy()
+        end
+        if OriginalSky then
+            OriginalSky.Parent = Lighting
+        end
+        
+        -- Restore lighting
+        Lighting.Ambient = Color3.fromRGB(1, 1, 1)
+        Lighting.Brightness = 1
+        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        Lighting.FogColor = Color3.fromRGB(191, 191, 191)
+        Lighting.FogEnd = 100000
+        Lighting.ClockTime = 14
+    end
+end)
 
 -- Fly Function
 CreateButton("Fly Toggle", function()
